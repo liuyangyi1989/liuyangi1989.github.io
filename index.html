@@ -1,46 +1,49 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的第一个网页应用</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>霍兰德职业兴趣测评（10题）</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
+  <script src="script.js" defer></script>
 </head>
 <body>
-    <div class="container">
-        <h1>欢迎来到我的网页应用！</h1>
-        
-        <div class="intro">
-            <p>这是一个使用纯HTML、CSS和JavaScript创建的基本网页应用。您可以通过以下方式进一步开发：</p>
-            <ul>
-                <li>修改HTML结构添加更多内容</li>
-                <li>调整CSS样式美化界面</li>
-                <li>添加JavaScript实现交互功能</li>
-                <li>或者使用现代前端框架进行开发</li>
-            </ul>
+  <main class="container">
+    <header class="hero">
+      <h1>霍兰德职业兴趣测评（RIASEC）</h1>
+      <p>共 10 题，选择每个描述与你的匹配程度（1=非常不符合，5=非常符合）。</p>
+      <p class="sub">本测评为兴趣探索工具，不作为唯一职业决策依据。</p>
+    </header>
+
+    <section class="card" id="quiz-section" aria-labelledby="quiz-title">
+      <h2 id="quiz-title">开始答题</h2>
+      <form id="quiz-form">
+        <p id="progress-text" class="progress-text">当前进度：0 / 10 题</p>
+        <div class="actions">
+          <button id="submit-btn" type="submit" class="btn primary" disabled>提交并查看测评结果</button>
+          <button id="reset-btn" type="button" class="btn ghost">重置作答</button>
         </div>
-        
-        <button class="btn">点击我</button>
-        <button class="btn" onclick="addNewFeature()">添加新功能</button>
-        <button class="btn" onclick="fetchData()">获取数据</button>
-        
-        <div class="features">
-            <h2>功能示例</h2>
-            <div class="feature-item">
-                <h3>响应式设计</h3>
-                <p>适配不同屏幕尺寸的设备</p>
-            </div>
-            <div class="feature-item">
-                <h3>交互元素</h3>
-                <p>按钮点击、表单提交等交互功能</p>
-            </div>
-            <div class="feature-item">
-                <h3>动态内容</h3>
-                <p>使用JavaScript动态更新页面内容</p>
-            </div>
-        </div>
-    </div>
-    
-    <script src="script.js"></script>
+      </form>
+    </section>
+
+    <section class="card hidden" id="result-section" aria-live="polite">
+      <h2>测评结果</h2>
+      <div class="top-summary">
+        <p><strong>你的前三兴趣类型：</strong><span id="top-codes">-</span></p>
+      </div>
+
+      <div class="chart-wrap">
+        <canvas id="radar-chart" width="600" height="400" aria-label="霍兰德职业兴趣雷达图"></canvas>
+      </div>
+
+      <div id="dimension-explanations" class="dimension-grid"></div>
+
+      <div class="actions">
+        <button id="export-pdf-btn" type="button" class="btn primary">导出 PDF 报告</button>
+      </div>
+    </section>
+  </main>
 </body>
 </html>
