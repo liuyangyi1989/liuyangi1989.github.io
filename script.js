@@ -1,126 +1,260 @@
-/**
- * 网页应用的JavaScript功能
- */
+const RIASEC_DIMENSIONS = {
+  R: {
+    name: "R 实用型（Realistic）",
+    description: "偏好动手实践、机械设备、户外任务与具体操作，常见于工程、制造、技术维护等领域。"
+  },
+  I: {
+    name: "I 研究型（Investigative）",
+    description: "偏好分析、探索与逻辑推理，关注问题本质，常见于科研、数据分析、医学与技术研发。"
+  },
+  A: {
+    name: "A 艺术型（Artistic）",
+    description: "偏好创意表达、审美与非结构化任务，常见于设计、写作、音乐、内容创作等方向。"
+  },
+  S: {
+    name: "S 社会型（Social）",
+    description: "偏好帮助他人、沟通协作与教育支持，常见于教育、咨询、服务与人力方向。"
+  },
+  E: {
+    name: "E 企业型（Enterprising）",
+    description: "偏好影响他人、组织推动与达成目标，常见于销售、管理、创业、商务拓展。"
+  },
+  C: {
+    name: "C 常规型（Conventional）",
+    description: "偏好秩序流程、数据整理与细节执行，常见于财务、行政、运营、项目协调。"
+  }
+};
 
-// DOM加载完成后执行
-document.addEventListener('DOMContentLoaded', function() {
-    // 绑定按钮点击事件
-    const btn = document.querySelector('.btn');
-    if (btn) {
-        btn.addEventListener('click', showMessage);
+const QUESTIONS = [
+  { text: "我喜欢使用工具或设备完成具体任务。", dimension: "R" },
+  { text: "我愿意通过分析数据或事实来解决问题。", dimension: "I" },
+  { text: "我喜欢通过文字、图像或音乐表达想法。", dimension: "A" },
+  { text: "我乐于倾听并帮助他人解决困扰。", dimension: "S" },
+  { text: "我享受说服他人、推动事情进展。", dimension: "E" },
+  { text: "我喜欢按流程整理资料并保持条理。", dimension: "C" },
+  { text: "相比纯思考，我更喜欢动手把东西做出来。", dimension: "R" },
+  { text: "我常对“为什么会这样”产生强烈好奇。", dimension: "I" },
+  { text: "我希望工作中有较多自由发挥和创造空间。", dimension: "A" },
+  { text: "我在团队中愿意承担组织协调或带动角色。", dimension: "E" }
+];
+
+let radarChart = null;
+
+function renderQuestions() {
+  const form = document.getElementById("quiz-form");
+
+  QUESTIONS.forEach((q, index) => {
+    const card = document.createElement("section");
+    card.className = "question";
+
+    const title = document.createElement("h3");
+    title.textContent = `第 ${index + 1} 题：${q.text}`;
+    card.appendChild(title);
+
+    const tag = document.createElement("span");
+    tag.className = "dimension-tag";
+    tag.textContent = `维度：${q.dimension}`;
+    card.appendChild(tag);
+
+    const group = document.createElement("div");
+    group.className = "rating-group";
+
+    for (let score = 1; score <= 5; score += 1) {
+      const label = document.createElement("label");
+      label.className = "rating-option";
+
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = `q-${index}`;
+      input.value = String(score);
+      input.required = true;
+
+      label.appendChild(input);
+      label.append(` ${score}分`);
+      group.appendChild(label);
     }
-    
-    // 添加页面加载动画
-    addPageLoadAnimation();
-    
-    // 初始化功能示例
-    initFeatureExamples();
+
+    card.appendChild(group);
+    const progressText = document.getElementById("progress-text");
+    form.insertBefore(card, progressText);
+  });
+}
+
+function collectAnswers() {
+  return QUESTIONS.map((_, index) => {
+    const checked = document.querySelector(`input[name='q-${index}']:checked`);
+    return checked ? Number(checked.value) : null;
+  });
+}
+
+function calculateScores(answers) {
+  const scores = { R: 0, I: 0, A: 0, S: 0, E: 0, C: 0 };
+
+  QUESTIONS.forEach((q, idx) => {
+    const score = answers[idx] ?? 0;
+    scores[q.dimension] += score;
+  });
+
+  return scores;
+}
+
+function getTopCodes(scores, topN = 3) {
+  return Object.entries(scores)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, topN)
+    .map(([code, value]) => `${code}(${value})`)
+    .join(" - ");
+}
+
+function updateSubmitState() {
+  const submitBtn = document.getElementById("submit-btn");
+  const progressText = document.getElementById("progress-text");
+  const answeredCount = collectAnswers().filter((ans) => ans !== null).length;
+
+  progressText.textContent = `当前进度：${answeredCount} / ${QUESTIONS.length} 题`;
+  submitBtn.disabled = answeredCount !== QUESTIONS.length;
+}
+
+function renderRadar(scores) {
+  const labels = Object.keys(RIASEC_DIMENSIONS);
+  const data = labels.map((k) => scores[k]);
+  const canvas = document.getElementById("radar-chart");
+
+  if (radarChart) {
+    radarChart.destroy();
+  }
+
+  radarChart = new Chart(canvas, {
+    type: "radar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "职业兴趣得分",
+          data,
+          fill: true,
+          backgroundColor: "rgba(56, 103, 255, 0.20)",
+          borderColor: "rgba(56, 103, 255, 1)",
+          pointBackgroundColor: "rgba(56, 103, 255, 1)"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        r: {
+          min: 0,
+          max: 10,
+          ticks: { stepSize: 2 }
+        }
+      }
+    }
+  });
+}
+
+function renderExplanations(scores) {
+  const root = document.getElementById("dimension-explanations");
+  root.innerHTML = "";
+
+  Object.entries(RIASEC_DIMENSIONS).forEach(([code, meta]) => {
+    const card = document.createElement("article");
+    card.className = "dimension-card";
+    card.innerHTML = `
+      <h4>${meta.name}</h4>
+      <p><strong>得分：</strong>${scores[code]}</p>
+      <p>${meta.description}</p>
+    `;
+    root.appendChild(card);
+  });
+}
+
+function showResults(scores) {
+  document.getElementById("result-section").classList.remove("hidden");
+  document.getElementById("top-codes").textContent = getTopCodes(scores);
+  renderRadar(scores);
+  renderExplanations(scores);
+}
+
+async function exportPdf() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const scores = window.__latestScores;
+
+  if (!scores) {
+    alert("请先生成测评结果，再导出 PDF。");
+    return;
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("霍兰德职业兴趣测评报告", 14, 18);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text(`生成时间：${new Date().toLocaleString()}`, 14, 26);
+  doc.text(`前三兴趣类型：${getTopCodes(scores)}`, 14, 34);
+
+  const chartCanvas = document.getElementById("radar-chart");
+  const chartImage = chartCanvas.toDataURL("image/png", 1.0);
+  doc.addImage(chartImage, "PNG", 14, 40, 180, 95);
+
+  let y = 145;
+  Object.entries(RIASEC_DIMENSIONS).forEach(([code, meta]) => {
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.text(`${meta.name}：${scores[code]}分`, 14, y);
+    y += 6;
+
+    doc.setFont("helvetica", "normal");
+    const wrapped = doc.splitTextToSize(meta.description, 180);
+    doc.text(wrapped, 14, y);
+    y += wrapped.length * 5 + 4;
+  });
+
+  doc.save("霍兰德职业兴趣测评报告.pdf");
+}
+
+function bindEvents() {
+  const quizForm = document.getElementById("quiz-form");
+
+  quizForm.addEventListener("change", updateSubmitState);
+
+  quizForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const answers = collectAnswers();
+    const hasUnanswered = answers.some((a) => a === null);
+
+    if (hasUnanswered) {
+      alert("请完成全部 10 道题后再提交。");
+      return;
+    }
+
+    const scores = calculateScores(answers);
+    window.__latestScores = scores;
+    showResults(scores);
+    document.getElementById("result-section").scrollIntoView({ behavior: "smooth" });
+  });
+
+  document.getElementById("reset-btn").addEventListener("click", () => {
+    quizForm.reset();
+    document.getElementById("result-section").classList.add("hidden");
+    window.__latestScores = null;
+    if (radarChart) {
+      radarChart.destroy();
+      radarChart = null;
+    }
+    updateSubmitState();
+  });
+
+  document.getElementById("export-pdf-btn").addEventListener("click", exportPdf);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  renderQuestions();
+  bindEvents();
+  updateSubmitState();
 });
-
-/**
- * 显示欢迎消息
- */
-function showMessage() {
-    alert('你好！欢迎使用我的网页应用。');
-}
-
-/**
- * 添加页面加载动画
- */
-function addPageLoadAnimation() {
-    const container = document.querySelector('.container');
-    if (container) {
-        container.style.opacity = '0';
-        container.style.transform = 'translateY(20px)';
-        container.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-        
-        // 触发重排后设置最终样式
-        setTimeout(() => {
-            container.style.opacity = '1';
-            container.style.transform = 'translateY(0)';
-        }, 100);
-    }
-}
-
-/**
- * 初始化功能示例
- */
-function initFeatureExamples() {
-    const featureItems = document.querySelectorAll('.feature-item');
-    featureItems.forEach((item, index) => {
-        // 添加延迟动画
-        item.style.opacity = '0';
-        item.style.transform = 'translateX(-20px)';
-        item.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        
-        setTimeout(() => {
-            item.style.opacity = '1';
-            item.style.transform = 'translateX(0)';
-        }, 300 + (index * 100));
-        
-        // 添加鼠标悬停效果
-        item.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateX(5px)';
-        });
-        
-        item.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateX(0)';
-        });
-    });
-}
-
-/**
- * 添加新功能：动态创建元素
- */
-function addNewFeature() {
-    const featuresContainer = document.querySelector('.features');
-    if (featuresContainer) {
-        const newFeature = document.createElement('div');
-        newFeature.className = 'feature-item';
-        newFeature.innerHTML = `
-            <h3>新功能</h3>
-            <p>这是一个动态添加的功能示例</p>
-        `;
-        
-        // 添加动画效果
-        newFeature.style.opacity = '0';
-        newFeature.style.transform = 'translateY(20px)';
-        newFeature.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        
-        featuresContainer.appendChild(newFeature);
-        
-        // 触发动画
-        setTimeout(() => {
-            newFeature.style.opacity = '1';
-            newFeature.style.transform = 'translateY(0)';
-        }, 100);
-    }
-}
-
-/**
- * 示例：表单处理函数
- * @param {Event} e - 表单提交事件
- */
-function handleFormSubmit(e) {
-    e.preventDefault();
-    // 这里可以添加表单处理逻辑
-    alert('表单提交成功！');
-}
-
-/**
- * 示例：API调用函数
- */
-async function fetchData() {
-    try {
-        // 这里可以添加真实的API调用
-        // const response = await fetch('https://api.example.com/data');
-        // const data = await response.json();
-        
-        // 模拟API响应
-        const mockData = { message: '数据获取成功！', timestamp: new Date().toLocaleString() };
-        alert(JSON.stringify(mockData, null, 2));
-    } catch (error) {
-        console.error('获取数据失败:', error);
-        alert('获取数据失败，请稍后重试');
-    }
-}
